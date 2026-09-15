@@ -1,0 +1,206 @@
+// VECTOR domain schema.
+// Local/dev + demo uses SQLite (zero external dependencies). Swap `provider`
+// to "postgresql" and point DATABASE_URL at Supabase for production — the
+// schema uses only cross-compatible types, so no model changes are needed.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum IncidentType {
+  MEDICAL
+  FIRE
+  TRAFFIC_COLLISION
+  STRUCTURAL
+  HAZMAT
+  PUBLIC_SAFETY
+  MASS_CASUALTY
+}
+
+enum IncidentStatus {
+  UNASSIGNED
+  ASSIGNED
+  ON_SCENE
+  RESOLVED
+}
+
+enum ResourceType {
+  AMBULANCE
+  FIRE_ENGINE
+  POLICE
+  HAZMAT
+  RESCUE
+}
+
+enum ResourceStatus {
+  AVAILABLE
+  EN_ROUTE
+  ON_SCENE
+  RETURNING
+  OFFLINE
+}
+
+enum AssignmentStatus {
+  PROPOSED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Zone {
+  id        String     @id @default(cuid())
+  name      String
+  latitude  Float
+  longitude Float
+  radiusKm  Float
+  riskLevel Int        @default(1)
+  incidents Incident[]
+
+  @@index([name])
+}
+
+model Hospital {
+  id             String       @id @default(cuid())
+  name           String
+  latitude       Float
+  longitude      Float
+  capacity       Int
+  currentLoad    Int          @default(0)
+  traumaCenter   Boolean      @default(false)
+  incidents      Incident[]
+
+  @@index([name])
+}
+
+model Incident {
+  id                    String         @id @default(cuid())
+  code                  String         @unique
+  type                  IncidentType
+  severity              Int
+  status                IncidentStatus @default(UNASSIGNED)
+  latitude              Float
+  longitude             Float
+  casualties            Int            @default(0)
+  requiredResourceType  ResourceType
+  hospitalRequired      Boolean        @default(false)
+  hospitalId            String?
+  hospital              Hospital?      @relation(fields: [hospitalId], references: [id])
+  zoneId                String?
+  zone                  Zone?          @relation(fields: [zoneId], references: [id])
+  description           String
+  createdAt             DateTime       @default(now())
+  resolvedAt            DateTime?
+  waitingSinceMinutes   Float          @default(0)
+  scenarioTag           String?
+  assignments           Assignment[]
+  events                Event[]
+
+  @@index([status])
+  @@index([severity])
+}
+
+model Resource {
+  id                    String         @id @default(cuid())
+  code                  String         @unique
+  type                  ResourceType
+  status                ResourceStatus @default(AVAILABLE)
+  latitude              Float
+  longitude             Float
+  homeLatitude          Float
+  homeLongitude         Float
+  capacity              Int            @default(1)
+  specialization        String?
+  currentAssignmentId   String?        @unique
+  currentAssignment     Assignment?    @relation("CurrentAssignment", fields: [currentAssignmentId], references: [id])
+  assignments           Assignment[]   @relation("ResourceAssignments")
+
+  @@index([status])
+  @@index([type])
+}
+
+model Assignment {
+  id                 String            @id @default(cuid())
+  incidentId         String
+  incident           Incident          @relation(fields: [incidentId], references: [id])
+  resourceId         String
+  resource           Resource          @relation("ResourceAssignments", fields: [resourceId], references: [id])
+  currentFor         Resource?         @relation("CurrentAssignment")
+  status             AssignmentStatus  @default(ACTIVE)
+  etaMinutes         Float
+  distanceKm         Float
+  assignedAt         DateTime          @default(now())
+  completedAt        DateTime?
+  isOverride         Boolean           @default(false)
+  overrideReason     String?
+  recommendedResourceId String?
+  optimizationRunId  String?
+  optimizationRun    OptimizationRun?  @relation(fields: [optimizationRunId], references: [id])
+
+  @@index([status])
+}
+
+model OptimizationRun {
+  id               String       @id @default(cuid())
+  createdAt        DateTime     @default(now())
+  objective        String
+  baselineScore    Float
+  optimizedScore   Float
+  improvementPct   Float
+  baselineJson     String
+  allocationJson   String
+  assignments      Assignment[]
+}
+
+model Scenario {
+  id            String          @id @default(cuid())
+  key           String          @unique
+  name          String
+  description   String
+  simulationRuns SimulationRun[]
+}
+
+model SimulationRun {
+  id          String    @id @default(cuid())
+  scenarioId  String
+  scenario    Scenario  @relation(fields: [scenarioId], references: [id])
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  seed        Int       @default(1)
+  events      Event[]
+}
+
+model Event {
+  id               String         @id @default(cuid())
+  simulationRunId  String?
+  simulationRun    SimulationRun? @relation(fields: [simulationRunId], references: [id])
+  incidentId       String?
+  incident         Incident?      @relation(fields: [incidentId], references: [id])
+  timestamp        DateTime       @default(now())
+  type             String
+  payloadJson      String
+  message          String
+
+  @@index([timestamp])
+  @@index([type])
+}
+
+model Operator {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  role       String    @default("OPERATOR")
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime?
+}
+
+model SystemState {
+  id                String   @id @default("singleton")
+  dispatchMode      String   @default("HUMAN_APPROVAL")
+  activeScenarioKey String?
+  simClockIso       String?
+  trafficMultiplier Float    @default(1)
+  updatedAt         DateTime @updatedAt
+}

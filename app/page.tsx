@@ -1,69 +1,207 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CommandBar } from "@/components/shell/CommandBar";
+import { StatusBar } from "@/components/shell/StatusBar";
+import { TopBar, type AppMode } from "@/components/shell/TopBar";
+import { ToastStack, useToasts } from "@/components/shell/ToastStack";
+import { OperationsDrawer, useOperationsDrawerControl } from "@/components/incidents/OperationsDrawer";
+import { MapContainer } from "@/components/map/MapContainer";
+import { FayPanel } from "@/components/decision/FayPanel";
+import { LoginScreen } from "@/components/auth/LoginScreen";
+import { postAutoDispatchTick, postDispatchMode, postIncidentStreamTick, postLifecycleTick } from "@/lib/client/api";
+import { useSession } from "@/lib/client/useSession";
+import { useSystemState } from "@/lib/client/useSystemState";
 
 export default function Home() {
+  const { operator, loading: sessionLoading, login, logout } = useSession();
+  const { data, error, loading, refresh } = useSystemState();
+  const [mode, setMode] = useState<AppMode>("LIVE");
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
+  const [focusIncidentIds, setFocusIncidentIds] = useState<string[] | null>(null);
+  const drawer = useOperationsDrawerControl();
+  const { toasts, push } = useToasts();
+
+  useEffect(() => {
+    // Auto-dispatch tick is a no-op server-side unless AUTO_DISPATCH mode is active.
+    const id = setInterval(() => {
+      postAutoDispatchTick().then((res) => {
+        if (res.ran) refresh();
+      });
+    }, 5000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  useEffect(() => {
+    // Physical lifecycle simulation (EN_ROUTE → ON_SCENE → back in service) —
+    // always runs, independent of dispatch mode; ticks faster than
+    // auto-dispatch so resource movement and arrival feel responsive.
+    const id = setInterval(() => {
+      postLifecycleTick().then((res) => {
+        if (res.arrived.length === 0 && res.returnedToService.length === 0) return;
+        for (const code of res.returnedToService) {
+          push(`${code} is back in service — available for reassignment`, "green");
+        }
+        refresh();
+      });
+    }, 2000);
+    return () => clearInterval(id);
+  }, [refresh, push]);
+
+  useEffect(() => {
+    // Keeps the board alive on its own — a real command center never goes
+    // quiet. Self-regulating server-side (see incidentStream.ts), so this is
+    // just a steady poll, not a rate the client controls.
+    const id = setInterval(() => {
+      postIncidentStreamTick().then((res) => {
+        if (res.created.length > 0) refresh();
+      });
+    }, 6000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  const selectedIncident = useMemo(
+    () => data?.incidents.find((i) => i.id === selectedIncidentId) ?? null,
+    [data, selectedIncidentId],
+  );
+
+  const routeResource = useMemo(() => {
+    if (!selectedIncident || !data) return null;
+    return data.resources.find((r) => r.code === selectedIncident.assignedResourceCode) ?? null;
+  }, [selectedIncident, data]);
+
+  const handleSelectResource = useCallback(
+    (resourceId: string) => {
+      setSelectedResourceId(resourceId);
+      // If it's currently assigned, also surface the incident it's responding
+      // to — but the camera always flies to the resource's own live position
+      // (handled inside the map), not the incident's.
+      const resource = data?.resources.find((r) => r.id === resourceId);
+      if (!resource?.currentIncidentCode || !data) return;
+      const incident = data.incidents.find((i) => i.code === resource.currentIncidentCode);
+      if (incident) setSelectedIncidentId(incident.id);
+    },
+    [data],
+  );
+
+  const handleSelectIncidentByCode = useCallback(
+    (code: string) => {
+      const incident = data?.incidents.find((i) => i.code === code);
+      if (incident) {
+        setMode("LIVE");
+        setSelectedIncidentId(incident.id);
+      }
+    },
+    [data],
+  );
+
+  const handleBrowseResources = useCallback(() => {
+    drawer.setTab("RESOURCES");
+    drawer.setExpanded(true);
+  }, [drawer]);
+
+  async function toggleDispatchMode() {
+    if (!data) return;
+    const next = data.dispatchMode === "AUTO_DISPATCH" ? "HUMAN_APPROVAL" : "AUTO_DISPATCH";
+    await postDispatchMode(next);
+    refresh();
+  }
+
+  if (sessionLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg-void)] text-[var(--text-tertiary)] text-[13px]">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!operator) {
+    return <LoginScreen onSignIn={login} />;
+  }
+
+  if (loading && !data) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg-void)] text-[var(--text-tertiary)] text-[13px]">
+        Initializing Fay…
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg-void)] text-[13px] text-[var(--accent-red)] px-6 text-center">
+        {error}
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="h-screen w-screen bg-[var(--bg-void)] overflow-hidden relative">
+      <div className="absolute inset-0">
+        <MapContainer
+          incidents={data.incidents}
+          resources={data.resources}
+          hospitals={data.hospitals}
+          selectedIncidentId={selectedIncidentId}
+          selectedResourceId={selectedResourceId}
+          routeResource={routeResource}
+          focusIncidentIds={mode === "OPTIMIZE" ? focusIncidentIds : null}
+          onSelectIncident={(id) => {
+            setMode("LIVE");
+            setSelectedIncidentId(id);
+          }}
+          onSelectResource={handleSelectResource}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      </div>
+
+      <div className="absolute top-0 left-0 right-0 z-30 scrim-top pb-6 pointer-events-none">
+        <div className="pointer-events-auto">
+          <TopBar
+            mode={mode}
+            onModeChange={setMode}
+            connected={!error}
+            dispatchMode={data.dispatchMode}
+            onToggleDispatchMode={toggleDispatchMode}
+            operator={operator}
+            onSignOut={logout}
+            events={data.events}
+            onSelectIncidentByCode={handleSelectIncidentByCode}
+          />
+          <StatusBar metrics={data.metrics} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+
+      <ToastStack toasts={toasts} />
+
+      <OperationsDrawer
+        incidents={data.incidents}
+        resources={data.resources}
+        selectedIncidentId={selectedIncidentId}
+        selectedIncident={selectedIncident}
+        selectedResourceId={selectedResourceId}
+        onSelectIncident={(id) => {
+          setMode("LIVE");
+          setSelectedIncidentId(id);
+        }}
+        onSelectResource={handleSelectResource}
+        onDispatched={refresh}
+        control={drawer}
+      />
+
+      <FayPanel
+        mode={mode}
+        incident={selectedIncident}
+        events={data.events}
+        onDispatched={refresh}
+        onSelectIncidentByCode={handleSelectIncidentByCode}
+        onOptimizePreview={setFocusIncidentIds}
+        onBrowseResources={handleBrowseResources}
+      />
+
+      <CommandBar />
     </div>
   );
 }

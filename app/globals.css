@@ -1,26 +1,197 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-void: #05070b;
+  --bg-base: #090c12;
+  --bg-surface: #0d1119;
+  --bg-elevated: #121724;
+  --bg-inset: #070a10;
+
+  --border-subtle: rgba(148, 163, 184, 0.1);
+  --border-default: rgba(148, 163, 184, 0.16);
+  --border-strong: rgba(148, 163, 184, 0.26);
+
+  --text-primary: #e8edf5;
+  --text-secondary: #9aa7bd;
+  --text-tertiary: #5f6b80;
+  --text-disabled: #3d4657;
+
+  --accent-cyan: #35d0d0;
+  --accent-cyan-dim: #1f7a7a;
+  --accent-cyan-bg: rgba(53, 208, 208, 0.1);
+
+  --accent-amber: #f0a742;
+  --accent-amber-bg: rgba(240, 167, 66, 0.1);
+
+  --accent-red: #f0525a;
+  --accent-red-bg: rgba(240, 82, 90, 0.12);
+
+  --accent-yellow: #e8c547;
+  --accent-yellow-bg: rgba(232, 197, 71, 0.1);
+
+  --accent-green: #4dd68a;
+  --accent-green-bg: rgba(77, 214, 138, 0.1);
+
+  --accent-blue: #5b8def;
+  --accent-blue-bg: rgba(91, 141, 239, 0.1);
+
+  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, "SF Mono", monospace;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-void: var(--bg-void);
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-inset: var(--bg-inset);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-disabled: var(--text-disabled);
+
+  --color-cyan: var(--accent-cyan);
+  --color-cyan-dim: var(--accent-cyan-dim);
+  --color-amber: var(--accent-amber);
+  --color-red: var(--accent-red);
+  --color-yellow: var(--accent-yellow);
+  --color-green: var(--accent-green);
+  --color-blue: var(--accent-blue);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border-default);
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: var(--accent-cyan-bg);
+  color: var(--text-primary);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* Tabular figures on the SYSTEM sans, not a coding-monospace face — numbers
+   should read as refined instrumentation, not a terminal. Reserve the actual
+   monospace face (.mono-id) for short identifiers like incident/resource codes. */
+.mono-tabular {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.mono-id {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.label-micro {
+  font-size: 10.5px;
+  font-weight: 590;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.scrim-top {
+  background: linear-gradient(to bottom, rgba(5, 7, 11, 0.88) 0%, rgba(5, 7, 11, 0.55) 55%, rgba(5, 7, 11, 0) 100%);
+}
+
+/* Lets a row scroll horizontally on narrow viewports instead of clipping
+   content — used by the top bar and status strip so nothing becomes
+   unreachable on a phone-width screen, without a bespoke mobile layout. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.surface-floating {
+  background: rgba(13, 17, 25, 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-in {
+  animation: fade-slide-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.mapboxgl-ctrl-logo {
+  opacity: 0.35;
+}
+.mapboxgl-popup-content {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default);
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  font-family: var(--font-sans);
+}
+.mapboxgl-popup-tip {
+  border-top-color: var(--bg-elevated) !important;
 }
