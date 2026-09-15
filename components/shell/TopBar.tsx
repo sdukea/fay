@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { HelpCircle } from "lucide-react";
 import { cn } from "@/lib/client/cn";
+import { HelpPanel } from "./HelpPanel";
 import { NotificationsBell } from "./NotificationsBell";
 import { ProfileMenu } from "./ProfileMenu";
 import type { Operator } from "@/lib/client/useSession";
@@ -33,6 +35,7 @@ export function TopBar({
   onSelectIncidentByCode: (code: string) => void;
 }) {
   const [now, setNow] = useState<Date | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   useEffect(() => {
     // Wall-clock tick — an intentional effect-driven external sync (Date.now()), not derived state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -92,9 +95,19 @@ export function TopBar({
         {now ? now.toLocaleTimeString("en-US", { hour12: false }) : "--:--:--"}
       </div>
 
+      <button
+        onClick={() => setHelpOpen(true)}
+        title="What is Fay?"
+        className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+      >
+        <HelpCircle size={16} />
+      </button>
+
       <NotificationsBell events={events} onSelectIncident={onSelectIncidentByCode} />
 
       <ProfileMenu operator={operator} onSignOut={onSignOut} />
+
+      {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
     </header>
   );
 }
