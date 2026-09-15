@@ -2,7 +2,7 @@
 
 **Fay** (codename `vector`) is a real-time emergency dispatch command center that decides — with a transparent, explainable, deterministic algorithm — which ambulance, fire engine, police unit, hazmat team, or rescue crew should respond to which incident, and *why*.
 
-Built for TreeHacks '26. Simulated over a live 3D map of Bengaluru, India, with 15 zones, 8 hospitals, and a 40-unit emergency fleet.
+Built for SprintStack '26. Simulated over a live 3D map of Bengaluru, India, with 15 zones, 8 hospitals, and a 40-unit emergency fleet.
 
 ## The pitch
 
