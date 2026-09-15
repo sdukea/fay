@@ -170,7 +170,7 @@ export function ResourceList({
                         <button
                           onClick={() => quickDispatch(resource.id)}
                           disabled={busyId !== null}
-                          className="flex-1 text-[11px] font-medium rounded-[7px] bg-[var(--accent-cyan)] text-[#04191c] py-1.5 disabled:opacity-60"
+                          className="flex-1 text-[11px] font-medium rounded-[7px] bg-[var(--accent-cyan)] text-[#16113a] py-1.5 disabled:opacity-60"
                         >
                           {busyId === resource.id ? "Dispatching…" : `Confirm dispatch to ${selectedIncident!.code}`}
                         </button>

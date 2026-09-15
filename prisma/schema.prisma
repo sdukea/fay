@@ -1,13 +1,13 @@
 // VECTOR domain schema.
-// Local/dev + demo uses SQLite (zero external dependencies). Swap `provider`
-// to "postgresql" and point DATABASE_URL at Supabase for production — the
-// schema uses only cross-compatible types, so no model changes are needed.
+// Postgres (Neon) — required in production since Vercel's serverless
+// functions run on a read-only, ephemeral filesystem and can't host a
+// SQLite file.
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -92,7 +92,7 @@ export function OptimizePanel({ onApplied, onPreview }: { onApplied: () => void;
                   cursor={{ fill: "rgba(255,255,255,0.03)" }}
                 />
                 <Bar dataKey="Current" fill="#5f6b80" radius={3} barSize={9} />
-                <Bar dataKey="Fay" fill="#35d0d0" radius={3} barSize={9} />
+                <Bar dataKey="Fay" fill="#8b7cf6" radius={3} barSize={9} />
               </BarChart>
             </ResponsiveContainer>
           </div>

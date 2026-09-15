@@ -28,7 +28,7 @@ export function LoginScreen({ onSignIn }: { onSignIn: (name: string, role: strin
     <div className="h-screen w-screen bg-[var(--bg-void)] flex items-center justify-center px-6">
       <form onSubmit={submit} className="w-full max-w-[380px] flex flex-col gap-6">
         <div className="text-center">
-          <div className="text-[26px] font-semibold tracking-[-0.01em] text-[var(--text-primary)] mb-2">Fay</div>
+          <div className="text-[34px] font-semibold tracking-[-0.01em] text-[var(--text-primary)] mb-2">Fay</div>
           <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">Sign in to the operations console</p>
         </div>
 
@@ -41,7 +41,7 @@ export function LoginScreen({ onSignIn }: { onSignIn: (name: string, role: strin
               id="operator-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Priya Sharma"
+              placeholder="e.g. Steve Jobs"
               autoFocus
               maxLength={40}
               className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] px-3 py-2.5 text-[13.5px] text-[var(--text-primary)] placeholder:text-[var(--text-faint)] outline-none focus-visible:border-[var(--accent-cyan)] transition-colors"

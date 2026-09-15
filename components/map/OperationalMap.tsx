@@ -183,10 +183,10 @@ export function OperationalMap({
         source: SOURCE_IDS.coverage,
         paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 18, 14, 80],
-          "circle-color": "#35d0d0",
+          "circle-color": "#8b7cf6",
           "circle-opacity": 0.05,
           "circle-stroke-width": 1,
-          "circle-stroke-color": "#35d0d0",
+          "circle-stroke-color": "#8b7cf6",
           "circle-stroke-opacity": 0.12,
         },
       });
@@ -207,14 +207,14 @@ export function OperationalMap({
         type: "line",
         source: SOURCE_IDS.route,
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#35d0d0", "line-width": 8, "line-opacity": 0.12, "line-blur": 2 },
+        paint: { "line-color": "#8b7cf6", "line-width": 8, "line-opacity": 0.12, "line-blur": 2 },
       });
       map.addLayer({
         id: "fay-route-line",
         type: "line",
         source: SOURCE_IDS.route,
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#35d0d0", "line-width": 2.75, "line-opacity": 0.95 },
+        paint: { "line-color": "#8b7cf6", "line-width": 2.75, "line-opacity": 0.95 },
       });
 
       map.addSource(SOURCE_IDS.hospitals, { type: "geojson", data: hospitalsToGeoJSON([]) });
