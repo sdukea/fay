@@ -1,2 +1,2 @@
-# fay
-Real-time emergency resource allocation, optimized for faster response (TU 26)
+## What it solves
+Optimizes emergency resource allocation to get the right help to the right incident, faster.
